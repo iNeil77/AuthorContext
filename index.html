@@ -33,9 +33,18 @@
 <h2>
 <a id="data-wrangling-and-mapping" class="anchor" href="#data-wrangling-and-mapping" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Data Wrangling and Mapping</h2>
 
-<p>The original DBLP dump consisted of 294,000+ authors but their fields of work were not clearly mentioned. Using the previously done work of third party sources, tag information regarding the field of work of a large number of authors was found, andd then by matching the two sources we were able to salvage the tag information of as many as 216,000+ authors.</p>
+<p>The original DBLP dump consisted of 294,000+ authors but their fields of work were not clearly mentioned. Using the previously done work of third party sources, tag information regarding the field of work of a large number of authors was found, andd then by matching the two sources we were able to salvage the tag information of as many as 216,000+ authors. A segment of the mapping has been shown below.</p>
 
-<p>The groundwork for the later learning, by negative sampling using a skip-gram model was also laid at this phase, with an author to authorID mapping created and the negative sampling tuples also written to a context file in the form <code>AuthorID1,AuthorID2,AuthorID3</code> where <code>AuthorID1</code> and <code>AuthorID2</code> could be two of the many authors who had collaborated on a paper. For each pair of authors, three different random negative samples were used in the form of three different <code>AuthorID3</code> which indicated three authors the collaborating pair had not co-collborated with.</p>
+<p align="center">
+<img src="https://raw.githubusercontent.com/iNeil77/AuthorContext/gh-pages/IRE/2016-04-14_22-43-33.jpg">
+<img src="https://raw.githubusercontent.com/iNeil77/AuthorContext/gh-pages/IRE/2016-04-14_22-48-41.jpg">
+</p>
+
+<p>The groundwork for the later learning, by negative sampling using a skip-gram model was also laid at this phase, with an author to authorID mapping created and the negative sampling tuples also written to a context file in the form <code>AuthorID1,AuthorID2,AuthorID3</code> where <code>AuthorID1</code> and <code>AuthorID2</code> could be two of the many authors who had collaborated on a paper. For each pair of authors, three different random negative samples were used in the form of three different <code>AuthorID3</code> which indicated three authors the collaborating pair had not co-collborated with. A segment of the context has been shown below.</p>
+
+<p align="center">
+<img src="https://raw.githubusercontent.com/iNeil77/AuthorContext/gh-pages/IRE/2016-04-14_22-48-41.jpg">
+</p>
 
 <hr>
 
@@ -47,16 +56,60 @@
 <h4>
 <a id="motivation-for-using-word-vectors" class="anchor" href="#motivation-for-using-word-vectors" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Motivation for using word vectors</h4>
 
+<p align="center">
+<img src="https://raw.githubusercontent.com/iNeil77/AuthorContext/gh-pages/IRE/2016-04-14_15-45-13.jpg">
+</p>
+
 <p>Natural language processing systems traditionally treat words as discrete atomic symbols, and therefore 'cat' may be represented as <code>Id537</code> and 'dog' as <code>Id143</code>. These encodings are arbitrary, and provide no useful information to the system regarding the relationships that may exist between the individual symbols. This means that the model can leverage very little of what it has learned about 'cats' when it is processing data about 'dogs' (such that they are both animals, four-legged, pets, etc.). Representing words as unique, discrete ids furthermore leads to data sparsity, and usually means that we may need more data in order to successfully train statistical models. Using vector representations can overcome some of these obstacles. Vector space models (VSMs) represent (embed) words in a continuous vector space where semantically similar words are mapped to nearby points ('are embedded nearby each other').</p>
 
-<p>Word2vec is a particularly computationally-efficient predictive model for learning word embeddings from raw text. It comes in two flavors, the Continuous Bag-of-Words model (CBOW) and the Skip-Gram model. Algorithmically, these models are similar, except that CBOW predicts target words (e.g. 'mat') from source context words ('the cat sits on the'), while the skip-gram does the inverse and predicts source context-words from the target words. This inversion might seem like an arbitrary choice, but statistically it has the effect that CBOW smoothes over a lot of the distributional information (by treating an entire context as one observation). For the most part, this turns out to be a useful thing for smaller datasets. However, skip-gram treats each context-target pair as a new observation, and this tends to do better when we have larger datasets, which is why we went forward with it.</p>
+<p align="center">
+<img src="https://raw.githubusercontent.com/iNeil77/AuthorContext/gh-pages/IRE/2016-04-14_15-29-33.jpg">
+</p>
+
+<p>Word2vec is a particularly computationally-efficient predictive model for learning word embeddings from raw text. It comes in two flavors, the Continuous Bag-of-Words model (CBOW) and the Skip-Gram model. Algorithmically, these models are similar, except that CBOW predicts target words (e.g. 'mat') from source context words ('the cat sits on the'), while the skip-gram does the inverse and predicts source context-words from the target words.</p>
+
+<p align="center">
+<img src="https://raw.githubusercontent.com/iNeil77/AuthorContext/gh-pages/IRE/word2vec_diagrams.png">
+</p>
+
+<p>This inversion might seem like an arbitrary choice, but statistically it has the effect that CBOW smoothes over a lot of the distributional information (by treating an entire context as one observation). For the most part, this turns out to be a useful thing for smaller datasets. However, skip-gram treats each context-target pair as a new observation, and this tends to do better when we have larger datasets, which is why we went forward with it.</p>
 
 <h4>
 <a id="skip-gram-model" class="anchor" href="#skip-gram-model" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Skip-Gram Model</h4>
 
-<p>Let's imagine at training step <code>t</code> we observe the first training case above, where the goal is to predict <code>the</code> from <code>quick</code>. We select <code>num_noise</code> number of noisy (contrastive) examples by drawing from some noise distribution, typically the unigram distribution, <code>P(w)</code>. For simplicity let's say <code>num_noise=1</code> and we select <code>sheep</code> as a noisy example. Next we compute the loss for this pair of observed and noisy examples. The goal is to make an update to the embedding parameters <code>θ</code> to improve (in this case, maximize) this objective function. We do this by deriving the gradient of the loss with respect to the embedding parameters <code>θ</code>. We then perform an update to the embeddings by taking a small step in the direction of the gradient. When this process is repeated over the entire training set, this has the effect of 'moving' the embedding vectors around for each word until the model is successful at discriminating real words from noise words.</p>
+<p>Let's imagine at training step <code>t</code> we observe the first training case above, where the goal is to predict <code>the</code> from <code>quick</code>. We select <code>num_noise</code> number of noisy (contrastive) examples by drawing from some noise distribution, typically the unigram distribution, <code>P(w)</code>. For simplicity let's say <code>num_noise=1</code> and we select <code>sheep</code> as a noisy example. Next we compute the loss for this pair of observed and noisy examples. The goal is to make an update to the embedding parameters <code>θ</code> to improve (in this case, maximize) this objective function. </p>
+
+<p align="center">
+<img src="https://raw.githubusercontent.com/iNeil77/AuthorContext/gh-pages/IRE/2016-04-14_15-28-03.jpg">
+</p>
+
+<p>We do this by deriving the gradient of the loss with respect to the embedding parameters <code>θ</code>. We then perform an update to the embeddings by taking a small step in the direction of the gradient. </p>
+
+<p align="center">
+<img src="https://raw.githubusercontent.com/iNeil77/AuthorContext/gh-pages/IRE/Screenshot%20from%202016-04-15%2000-45-59.png">
+</p>
+
+<p>When this process is repeated over the entire training set, this has the effect of 'moving' the embedding vectors around for each word until the model is successful at discriminating real words from noise words.</p>
 
 <p>Effectively, SKip Gram Negative Sampling is implicitly factorizing a word-context matrix, whose cells are the pointwise mutual information (PMI) of the respective word and context pairs, shifted by a global constant.</p>
+
+<h4>
+<a id="transfer-function" class="anchor" href="#transfer-function" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Transfer Function</h4>
+
+<p>We took to the frequently-used <code>sigmoid</code> module as the trandfer function. This module applies the Sigmoid function element-wise to the input Tensor, thus outputting a Tensor of the same dimension. Sigmoid is defined as <code>f(x) = 1/(1+exp(-x))</code>.</p>
+
+<h4>
+<a id="loss-function-criteria" class="anchor" href="#loss-function-criteria" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Loss Function Criteria</h4>
+
+<p>In this project we have used the Binary Cross Entropy Criterion which creates a criterion that measures the Binary Cross Entropy between the target and the output.</p>
+
+<div class="highlight highlight-source-lua"><pre>criterion <span class="pl-k">=</span> nn.<span class="pl-c1">BCECriterion</span>([weights])</pre></div>
+
+<p>This is used for measuring the error of a reconstruction in for example an auto-encoder. Note that the targets <code>t[i]</code> should be numbers between 0 and 1, for instance, the output of an <code>nn.Sigmoid</code> layer.</p>
+
+<div class="highlight highlight-source-lua"><pre><span class="pl-c1">loss</span>(o, t) <span class="pl-k">=</span> <span class="pl-k">-</span> <span class="pl-c1">1</span><span class="pl-k">/</span>n <span class="pl-c1">sum_i</span> (t[i] <span class="pl-k">*</span> <span class="pl-c1">log</span>(o[i]) <span class="pl-k">+</span> (<span class="pl-c1">1</span> <span class="pl-k">-</span> t[i]) <span class="pl-k">*</span> <span class="pl-c1">log</span>(<span class="pl-c1">1</span> <span class="pl-k">-</span> o[i]))</pre></div>
+
+<p>By default, the losses are averaged for each minibatch over observations as well as over dimensions. However, if the field <code>sizeAverage</code> is set to <code>false</code>, the losses are instead summed.</p>
 
 <hr>
 
@@ -106,6 +159,10 @@
 <li>   Crammer and Singer Method: This is a multiclass SVM method which casts the multiclass classification problem into a single optimization problem, rather than decomposing it into multiple binary classification problems. The <code>LinearSVC</code> class implements this uding the <code>multi_class='crammer_singer'</code> option. This method is consistent, which is not true for one-vs-rest classification. In practice, one-vs-rest classification is usually preferred, since the results are mostly similar, but the runtime is significantly less.</li>
 </ul>
 
+<p align="center">
+<img src="https://raw.githubusercontent.com/iNeil77/AuthorContext/gh-pages/IRE/2016-04-14_23-17-30.jpg">
+</p>
+
 <p>The <code>SVC</code> and <code>NuSVC</code> are similar methods, but accept slightly different sets of parameters and have different underlying mathematical formulations.  On the other hand, <code>LinearSVC</code> is another implementation of Support Vector Classification for the case of a linear kernel.</p>
 
 <p>The results are obtained by firstlt training on 85 percent of the available data and then testing on the remaining 15 percent. This procedure is carried out for a group of 1000, 10000, 60000 and all the 216000+ unique authors, with the smaller subsets chosen randomly. The accuracy results obtained by using the above mentioned three strategies are tabulated below:</p>
@@ -147,10 +204,10 @@
 
 <hr>
 
-<h3>
-<a id="support-or-contact" class="anchor" href="#support-or-contact" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Support or Contact</h3>
+<h2>
+<a id="references" class="anchor" href="#references" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>References</h2>
 
-<p>Having trouble with Pages? Check out our <a href="https://help.github.com/pages">documentation</a> or <a href="https://github.com/contact">contact support</a> and we’ll help you sort it out.</p>
+<p>The accompanying slides and reports can be found here at the project dropbox repository.</p>
 
       <footer class="site-footer">
         <span class="site-footer-owner"><a href="https://github.com/iNeil77/AuthorContext">Authorcontext</a> is maintained by <a href="https://github.com/iNeil77">iNeil77</a>.</span>
